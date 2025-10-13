@@ -1,0 +1,9 @@
+# dependency-service
+dependency-service/node_modules
+dependency-service/dist
+dependency-service/.env
+dependency-service/*.png
+
+# prac2
+prac2/*.png
+prac2/dependencies
