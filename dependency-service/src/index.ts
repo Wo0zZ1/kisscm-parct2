@@ -83,6 +83,18 @@ function saveGraph(graph: graphviz.Graph, fileName: string): void {
 	console.log('Граф сохранен по пути:', fullPath)
 }
 
+function printASCIITree(node: Node, prefix: string = '', isLast: boolean = true): void {
+	const connector = isLast ? '└── ' : '├── '
+	console.log(prefix + connector + node.name + '@' + node.version)
+
+	const newPrefix = prefix + (isLast ? '    ' : '│   ')
+
+	node.dependencies.forEach((dep, index) => {
+		const isLastChild = index === node.dependencies.length - 1
+		printASCIITree(dep, newPrefix, isLastChild)
+	})
+}
+
 async function main() {
 	if (!process.env.Dependency) throw new Error('dependency not configured')
 
@@ -91,6 +103,8 @@ async function main() {
 	const graph = generateGraph(dependencyGraph)
 
 	saveGraph(graph, `${process.env.FileName || 'graph'}.png`)
+
+	printASCIITree(dependencyGraph)
 }
 
 main()
