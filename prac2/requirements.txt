@@ -1,0 +1,3 @@
+graphviz==0.21
+aiogram==3.12.0
+fastapi==0.119.0
