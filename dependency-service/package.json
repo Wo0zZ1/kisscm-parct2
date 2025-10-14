@@ -9,16 +9,18 @@
 		"dev": "ts-node src/index.ts"
 	},
 	"devDependencies": {
+		"@types/graphviz": "^0.0.39",
+		"@types/pacote": "^11.1.8",
+		"@types/yargs": "^17.0.33",
+		"ts-node": "^10.9.2",
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"@types/graphviz": "^0.0.39",
-		"@types/pacote": "^11.1.8",
 		"child_process": "^1.0.2",
 		"dotenv": "^17.2.3",
 		"graphviz": "^0.0.9",
 		"pacote": "^21.0.3",
-		"ts-node": "^10.9.2",
-		"util": "^0.12.5"
+		"util": "^0.12.5",
+		"yargs": "^18.0.0"
 	}
 }

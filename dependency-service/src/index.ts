@@ -1,9 +1,99 @@
 import pacote from 'pacote'
 import graphviz from 'graphviz'
 import dotenv from 'dotenv'
-import * as Path from 'path'
+import Path from 'path'
+import yargs from 'yargs'
+import { hideBin } from 'yargs/helpers'
 
 dotenv.config()
+
+interface CLIOptions {
+	package: string
+	'package-version': string
+	output: string
+	ascii: boolean
+	depth: number
+	filter?: string
+}
+
+function parseArgs(): CLIOptions {
+	try {
+		const argv = yargs(hideBin(process.argv))
+			.option('package', {
+				alias: 'p',
+				type: 'string',
+				description: 'Имя анализируемого пакета',
+				demandOption: true,
+			})
+			.option('package-version', {
+				alias: 'pv',
+				type: 'string',
+				description: 'Версия пакета',
+				default: 'latest',
+			})
+			.option('output', {
+				alias: 'o',
+				type: 'string',
+				description: 'Имя сгенерированного файла с изображением графа',
+				default: 'dependencies.png',
+			})
+			.option('ascii', {
+				alias: 'a',
+				type: 'boolean',
+				description: 'Режим вывода зависимостей в формате ASCII-дерева',
+				default: false,
+			})
+			.option('depth', {
+				alias: 'd',
+				type: 'number',
+				description: 'Максимальная глубина анализа зависимостей',
+				default: Infinity,
+			})
+			.option('filter', {
+				alias: 'f',
+				type: 'string',
+				description: 'Подстрока для фильтрации пакетов',
+			})
+			.example([
+				[
+					'$0 --package express --output expressjs-graph',
+					'Анализ expressjs и сохранение в expressjs-graph.png',
+				],
+				['$0 -p lodash -v 4.17.21 -a', 'Анализ lodash версии 4.17.21 с ASCII выводом'],
+				[
+					'$0 -p react -d 2 -f "babel"',
+					'Анализ react с глубиной 2 и фильтром по "babel"',
+				],
+			])
+			.help()
+			.alias('help', 'h')
+			.parseSync()
+
+		return argv as CLIOptions
+	} catch (error) {
+		console.error('❌ Error parsing arguments:', error)
+		process.exit(1)
+	}
+}
+
+function validateOptions(options: CLIOptions): void {
+	if (!options.package || options.package.trim() === '')
+		throw new Error('Имя пакета не может быть пустым')
+
+	if (options.depth < 1)
+		throw new Error('Глубина анализа должна быть положительным числом')
+}
+
+function printOptions(options: CLIOptions): void {
+	console.log('=== Настроенные параметры ===')
+	console.log(`Пакет: ${options.package}`)
+	console.log(`Версия: ${options['package-version']}`)
+	console.log(`Выходной файл: ${options.output}`)
+	console.log(`ASCII-дерево: ${options.ascii ? 'включено' : 'выключено'}`)
+	console.log(`Макс. глубина: ${options.depth}`)
+	console.log(`Фильтр: ${options.filter || 'не задан'}`)
+	console.log('==============================')
+}
 
 class Node {
 	constructor(
@@ -16,16 +106,26 @@ class Node {
 async function getDependencies(
 	packageName: string,
 	version: string = 'latest',
+	maxDepth: number = 3,
+	filter?: string,
 ): Promise<Node> {
 	const cache = new Map<string, Node>()
 
 	async function traverse(
 		packageName: string,
 		version: string = 'latest',
+		depth: number = 0,
 	): Promise<Node> {
+		if (depth >= maxDepth) return new Node(packageName, version)
+
 		const cacheKey = `${packageName}@${version}`
 
 		if (cache.has(cacheKey)) return cache.get(cacheKey)!
+
+		if (filter && packageName.includes(filter)) {
+			console.log(`🔍 Пропущен пакет (фильтр): ${packageName}`)
+			return new Node(packageName, version)
+		}
 
 		try {
 			const manifest = await pacote.manifest(`${packageName}@${version}`)
@@ -34,9 +134,10 @@ async function getDependencies(
 			cache.set(cacheKey, node)
 
 			const dependencies = manifest.dependencies || {}
+
 			node.dependencies = await Promise.all(
 				Object.entries(dependencies).map(([name, version]) =>
-					getDependencies(name, version),
+					traverse(name, version, depth + 1),
 				),
 			)
 
@@ -84,13 +185,38 @@ function saveGraph(graph: graphviz.Graph, fileName: string): void {
 }
 
 async function main() {
-	if (!process.env.Dependency) throw new Error('dependency not configured')
+	try {
+		console.log('🚀 Starting dependency analyzer...')
 
-	const dependencyGraph = await getDependencies(process.env.Dependency)
+		const options = parseArgs()
 
-	const graph = generateGraph(dependencyGraph)
+		validateOptions(options)
 
-	saveGraph(graph, `${process.env.FileName || 'graph'}.png`)
+		printOptions(options)
+
+		console.log('🔍 Получаем зависимости...')
+		const dependencyGraph = await getDependencies(
+			options.package,
+			options['package-version'],
+			options.depth,
+			options.filter,
+		)
+
+		// TODO printASCII tree
+		// if (options.ascii) {
+		// 	console.log('\n🌳 ASCII-дерево зависимостей:')
+		// 	printASCIITree(dependencyGraph)
+		// }
+
+		console.log('\n📊 Генерируем граф...')
+		const graph = generateGraph(dependencyGraph)
+
+		saveGraph(graph, options.output)
+
+		console.log('✅ Готово!')
+	} catch (error) {
+		console.error('💥 Error in main:', error)
+	}
 }
 
 main()
