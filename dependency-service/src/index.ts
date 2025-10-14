@@ -184,6 +184,18 @@ function saveGraph(graph: graphviz.Graph, fileName: string): void {
 	console.log('Граф сохранен по пути:', fullPath)
 }
 
+function printASCIITree(node: Node, prefix: string = '', isLast: boolean = true): void {
+	const connector = isLast ? '└── ' : '├── '
+	console.log(prefix + connector + node.name + '@' + node.version)
+
+	const newPrefix = prefix + (isLast ? '    ' : '│   ')
+
+	node.dependencies.forEach((dep, index) => {
+		const isLastChild = index === node.dependencies.length - 1
+		printASCIITree(dep, newPrefix, isLastChild)
+	})
+}
+
 async function main() {
 	try {
 		console.log('🚀 Starting dependency analyzer...')
@@ -202,11 +214,10 @@ async function main() {
 			options.filter,
 		)
 
-		// TODO printASCII tree
-		// if (options.ascii) {
-		// 	console.log('\n🌳 ASCII-дерево зависимостей:')
-		// 	printASCIITree(dependencyGraph)
-		// }
+		if (options.ascii) {
+			console.log('\n🌳 ASCII-дерево зависимостей:')
+			printASCIITree(dependencyGraph)
+		}
 
 		console.log('\n📊 Генерируем граф...')
 		const graph = generateGraph(dependencyGraph)
