@@ -1,0 +1,28 @@
+{
+	"packages": {
+		"A": {
+			"version": "1.0.0",
+			"dependencies": {
+				"B": "1.0.0",
+				"C": "1.0.0"
+			}
+		},
+		"B": {
+			"version": "1.0.0",
+			"dependencies": {
+				"C": "1.0.0",
+				"D": "1.0.0"
+			}
+		},
+		"C": {
+			"version": "1.0.0",
+			"dependencies": {
+				"A": "1.0.0"
+			}
+		},
+		"D": {
+			"version": "1.0.0",
+			"dependencies": {}
+		}
+	}
+}
